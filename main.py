@@ -196,7 +196,11 @@ def send_welcome(message):
 
 def is_subscribed(user_id):
     """Проверяет, подписан ли пользователь на канал GetAuto"""
-    channel_username = "@Getauto_kor"
+    # Если пользователь админ, не требуем подписку
+    if user_id in admins:
+        return True
+
+    channel_username = "@stok_auto_krd"
     try:
         chat_member = bot.get_chat_member(channel_username, user_id)
         status = chat_member.status
@@ -382,23 +386,34 @@ def send_welcome(message):
         user.phone_number if hasattr(user, "phone_number") else None
     )  # Получаем номер телефона
 
-    if not is_subscribed(user_id):
-        # Если пользователь не подписан, отправляем сообщение и не даем пользоваться ботом
-        keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(
-            types.InlineKeyboardButton("🔗 Подписаться", url="https://t.me/Getauto_kor")
-        )
-        keyboard.add(
-            types.InlineKeyboardButton(
-                "✅ Проверить подписку", callback_data="check_subscription"
+    try:
+        if not is_subscribed(user_id):
+            # Если пользователь не подписан, отправляем сообщение и не даем пользоваться ботом
+            keyboard = types.InlineKeyboardMarkup()
+            keyboard.add(
+                types.InlineKeyboardButton(
+                    "🔗 Подписаться", url="https://t.me/stok_auto_krd"
+                )
             )
-        )
+            keyboard.add(
+                types.InlineKeyboardButton(
+                    "✅ Проверить подписку", callback_data="check_subscription"
+                )
+            )
+            bot.send_message(
+                user_id,
+                "🚫 Для использования бота, пожалуйста, подпишитесь на наш канал!",
+                reply_markup=keyboard,
+            )
+            return  # Прерываем выполнение функции
+    except Exception as e:
+        print(f"Ошибка при проверке подписки: {e}")
         bot.send_message(
             user_id,
-            "🚫 Для использования бота, пожалуйста, подпишитесь на наш канал!",
-            reply_markup=keyboard,
+            "Произошла ошибка при проверке подписки. Пожалуйста, попробуйте позже.",
+            reply_markup=main_menu(),
         )
-        return  # Прерываем выполнение функции
+        return
 
     # Если подписан — продолжаем работу
     welcome_message = (
@@ -552,7 +567,7 @@ def calculate_cost(link, message):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(
             types.InlineKeyboardButton(
-                "Написать менеджеру", url="https://t.me/GetAuto_manager_bot"
+                "Написать менеджеру", url="https://t.me/Petrov1982_777"
             )
         )
         keyboard.add(
@@ -737,10 +752,10 @@ def calculate_cost(link, message):
             f"▪️ СВХ-Владивосток:\n<b>₩{format_number(car_data['svh_russia_krw'])}</b> | <b>{format_number(car_data['svh_russia_rub'])} ₽</b>\n\n"
             f"▪️ Лаборатория, СБКТС, ЭПТС:\n<b>₩{format_number(car_data['lab_russia_krw'])}</b> | <b>{format_number(car_data['lab_russia_rub'])} ₽</b>\n\n"
             f"▪️ Временная регистрация-Владивосток:\n<b>₩{format_number(car_data['perm_registration_russia_krw'])}</b> | <b>{format_number(car_data['perm_registration_russia_rub'])} ₽</b>\n\n"
-            f"‼️ <b>Доставку до вашего города уточняйте у менеджера @GetAuto_manager_bot</b>\n"
+            f"‼️ <b>Доставку до вашего города уточняйте у менеджера @Petrov1982_777</b>\n\n"
             "Стоимость под ключ актуальна на сегодняшний день, возможны колебания курса на 3-5% от стоимости авто, на момент покупки автомобиля\n\n"
             f"🔗 <a href='{preview_link}'>Ссылка на автомобиль</a>\n\n"
-            "🔗 <a href='https://t.me/Getauto_kor'>Официальный телеграм канал</a>\n"
+            "🔗 <a href='https://t.me/stok_auto_krd'>Официальный телеграм канал</a>\n"
         )
 
         # Клавиатура с дальнейшими действиями
@@ -756,7 +771,7 @@ def calculate_cost(link, message):
         )
         keyboard.add(
             types.InlineKeyboardButton(
-                "Написать менеджеру", url="https://t.me/GetAuto_manager_bot"
+                "Написать менеджеру", url="https://t.me/Petrov1982_777"
             )
         )
         keyboard.add(
@@ -872,7 +887,7 @@ def handle_callback_query(call):
             f"СВХ-Владивосток:\n<b>₩{format_number(car_data['svh_russia_krw'])}</b> | <b>{format_number(car_data['svh_russia_rub'])} ₽</b>\n\n"
             f"Лаборатория, СБКТС, ЭПТС:\n<b>₩{format_number(car_data['lab_russia_krw'])}</b> | <b>{format_number(car_data['lab_russia_rub'])} ₽</b>\n\n"
             f"Временная регистрация-Владивосток:\n<b>₩{format_number(car_data['perm_registration_russia_krw'])}</b> | <b>{format_number(car_data['perm_registration_russia_rub'])} ₽</b>\n\n"
-            f"<b>Доставку до вашего города уточняйте у менеджера @GetAuto_manager_bot</b>\n"
+            f"<b>Доставку до вашего города уточняйте у менеджера @Petrov1982_777</b>\n"
             "Стоимость под ключ актуальна на сегодняшний день, возможны колебания курса на 3-5% от стоимости авто, на момент покупки автомобиля\n\n"
         )
 
@@ -896,7 +911,7 @@ def handle_callback_query(call):
 
         keyboard.add(
             types.InlineKeyboardButton(
-                "Связаться с менеджером", url="https://t.me/GetAuto_manager_bot"
+                "Связаться с менеджером", url="https://t.me/Petrov1982_777"
             )
         )
 
@@ -940,7 +955,7 @@ def handle_callback_query(call):
             )
             keyboard.add(
                 types.InlineKeyboardButton(
-                    "Связаться с менеджером", url="https://t.me/GetAuto_manager_bot"
+                    "Связаться с менеджером", url="https://t.me/Petrov1982_777"
                 )
             )
 
@@ -976,7 +991,7 @@ def handle_callback_query(call):
             )
             keyboard.add(
                 types.InlineKeyboardButton(
-                    "Связаться с менеджером", url="https://t.me/GetAuto_manager_bot"
+                    "Связаться с менеджером", url="https://t.me/Petrov1982_777"
                 )
             )
 
@@ -1020,7 +1035,7 @@ def handle_callback_query(call):
                 keyboard = types.InlineKeyboardMarkup()
                 keyboard.add(
                     types.InlineKeyboardButton(
-                        "🔗 Подписаться", url="https://t.me/Getauto_kor"
+                        "🔗 Подписаться", url="https://t.me/stok_auto_krd"
                     )
                 )
                 keyboard.add(
@@ -1053,7 +1068,9 @@ def handle_message(message):
     if not is_subscribed(user_id):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(
-            types.InlineKeyboardButton("🔗 Подписаться", url="https://t.me/Getauto_kor")
+            types.InlineKeyboardButton(
+                "🔗 Подписаться", url="https://t.me/stok_auto_krd"
+            )
         )
         keyboard.add(
             types.InlineKeyboardButton(
@@ -1087,7 +1104,7 @@ def handle_message(message):
     elif user_message == "Написать менеджеру":
         bot.send_message(
             message.chat.id,
-            "Вы можете связаться с менеджером по ссылке: @GetAuto_manager_bot",
+            "Вы можете связаться с менеджером по ссылке: @Petrov1982_777",
         )
     elif user_message == "Написать в WhatsApp":
         whatsapp_link = "https://wa.me/821030485191"  # Владимир Кан
@@ -1107,18 +1124,18 @@ def handle_message(message):
             "✅ *Гарантированное качество* — Проверенные авто, прозрачная история и состояние.\n\n"
             "💰 *Прозрачность ценообразования* — Честные цены, без скрытых платежей и комиссий.\n\n"
             "🚛 *Надежная логистика* — Организуем доставку авто в любую точку СНГ.\n\n"
-            f"📲 Свяжитесь с нами и получите расчёт прямо сейчас! @GetAuto\\_manager\\_bot"
+            f"📲 Свяжитесь с нами и получите расчёт прямо сейчас! @Petrov1982_777"
         )
         bot.send_message(message.chat.id, about_message, parse_mode="Markdown")
 
     elif user_message == "Мы в соц. сетях":
-        channel_link = "https://t.me/Getauto_kor"
+        channel_link = "https://t.me/stok_auto_krd"
         instagram_link = "https://www.instagram.com/petrov_avto_krd/"
         youtube_link = "https://www.youtube.com/@%D0%9F%D0%B5%D1%82%D1%80%D0%BE%D0%B2%D0%A1%D1%82%D0%BE%D0%BA%D0%90%D0%B2%D1%82%D0%BE"
-        dzen_link = "https://dzen.ru/getauto_ru"
-        vk_link = "https://vk.com/getauto_korea"
+        # dzen_link = "https://dzen.ru/getauto_ru"
+        # vk_link = "https://vk.com/getauto_korea"
 
-        message_text = f"Наш Телеграм Канал: \n{channel_link}\n\nНаш Инстаграм: \n{instagram_link}\n\nНаш YouTube Канал: \n{youtube_link}\n\nМы на Dzen: \n{dzen_link}\n\nМы в ВК: \n{vk_link}\n\n"
+        message_text = f"Наш Телеграм Канал: \n{channel_link}\n\nНаш Инстаграм: \n{instagram_link}\n\nНаш YouTube Канал: \n{youtube_link}\n\n"
 
         bot.send_message(message.chat.id, message_text)
 
@@ -1440,8 +1457,8 @@ def calculate_manual_cost(user_id):
         f"Примерная стоимость автомобиля под ключ до Владивостока:\n"
         f"<b>₩{format_number(total_cost_krw)}</b> | "
         f"<b>{format_number(total_cost)} ₽</b>\n\n"
-        "Если данное авто попадает под санкции, пожалуйста уточните возможность отправки в вашу страну у менеджера @GetAuto_manager_bot\n\n"
-        "🔗 <a href='https://t.me/Getauto_kor'>Официальный телеграм канал</a>\n"
+        "Если данное авто попадает под санкции, пожалуйста уточните возможность отправки в вашу страну у менеджера @Petrov1982_777\n\n"
+        "🔗 <a href='https://t.me/stok_auto_krd'>Официальный телеграм канал</a>\n"
     )
 
     # Клавиатура с действиями
@@ -1456,7 +1473,7 @@ def calculate_manual_cost(user_id):
     )
     keyboard.add(
         types.InlineKeyboardButton(
-            "Написать менеджеру", url="https://t.me/GetAuto_manager_bot"
+            "Написать менеджеру", url="https://t.me/Petrov1982_777"
         )
     )
 
