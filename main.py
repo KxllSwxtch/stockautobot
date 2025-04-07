@@ -31,7 +31,6 @@ from utils import (
 CALCULATE_CAR_TEXT = "Расчёт по ссылке с Encar"
 MANUAL_CAR_TEXT = "Расчёт стоимости вручную"
 DEALER_COMMISSION = 0.00  # 2%
-DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Список User-Agent'ов (можно дополнять)
 USER_AGENTS = [
@@ -71,7 +70,7 @@ user_manual_input = {}
 car_id_external = ""
 total_car_price = 0
 users = set()
-admins = [728438182, 7311646338, 490148761, 463460708]  # админы
+admins = [728438182]  # админы
 car_month = None
 car_year = None
 
@@ -89,36 +88,36 @@ from psycopg2 import sql
 from telebot import types
 
 # Подключение к базе данных
-DATABASE_URL = os.getenv("DATABASE_URL")
-conn = psycopg2.connect(DATABASE_URL, sslmode="require")
-cursor = conn.cursor()
-print("✅ Успешное подключение к БД")
+# DATABASE_URL = os.getenv("DATABASE_URL")
+# conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+# cursor = conn.cursor()
+# print("✅ Успешное подключение к БД")
 
 
-def save_user_to_db(user_id, username, first_name, phone_number):
-    """Сохраняет пользователя в базу данных."""
-    if username is None or phone_number is None:
-        return  # Пропускаем пользователей с скрытыми данными
+# def save_user_to_db(user_id, username, first_name, phone_number):
+#     """Сохраняет пользователя в базу данных."""
+#     if username is None or phone_number is None:
+#         return  # Пропускаем пользователей с скрытыми данными
 
-    try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode="require")
-        cursor = conn.cursor()
+#     try:
+#         conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+#         cursor = conn.cursor()
 
-        # SQL-запрос для вставки данных
-        query = sql.SQL(
-            """
-            INSERT INTO users (user_id, username, first_name, phone_number)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (user_id) DO NOTHING;
-        """
-        )
+#         # SQL-запрос для вставки данных
+#         query = sql.SQL(
+#             """
+#             INSERT INTO users (user_id, username, first_name, phone_number)
+#             VALUES (%s, %s, %s, %s)
+#             ON CONFLICT (user_id) DO NOTHING;
+#         """
+#         )
 
-        cursor.execute(query, (user_id, username, first_name, phone_number))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"Ошибка при сохранении пользователя: {e}")
+#         cursor.execute(query, (user_id, username, first_name, phone_number))
+#         conn.commit()
+#         cursor.close()
+#         conn.close()
+#     except Exception as e:
+#         print(f"Ошибка при сохранении пользователя: {e}")
 
 
 @bot.message_handler(commands=["start"])
@@ -133,68 +132,66 @@ def send_welcome(message):
     if username is None:
         username = ""
 
-    save_user_to_db(user_id, username, first_name, "")
-
     bot.send_message(
         message.chat.id,
         f"Здравствуйте, {first_name}! 👋\n\n"
-        "Я бот компании GetAuto. Я помогу вам рассчитать стоимость автомобиля из Южной Кореи до Владивостока.",
+        "Я бот компании Сток Авто. Я помогу вам рассчитать стоимость автомобиля из Южной Кореи до Владивостока.",
         reply_markup=main_menu(),
     )
 
 
-@bot.message_handler(commands=["stats"])
-def show_statistics(message):
-    """Команда /stats доступна только администраторам"""
-    user_id = message.chat.id  # Получаем user_id того, кто запустил команду
+# @bot.message_handler(commands=["stats"])
+# def show_statistics(message):
+#     """Команда /stats доступна только администраторам"""
+#     user_id = message.chat.id  # Получаем user_id того, кто запустил команду
 
-    if user_id not in admins:
-        bot.send_message(user_id, "❌ У вас нет доступа к этой команде.")
-        return
+#     if user_id not in admins:
+#         bot.send_message(user_id, "❌ У вас нет доступа к этой команде.")
+#         return
 
-    try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode="require")
-        cursor = conn.cursor()
+#     try:
+#         conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+#         cursor = conn.cursor()
 
-        cursor.execute("SELECT user_id, username, first_name, created_at FROM users;")
-        users = cursor.fetchall()
+#         cursor.execute("SELECT user_id, username, first_name, created_at FROM users;")
+#         users = cursor.fetchall()
 
-        cursor.close()
-        conn.close()
+#         cursor.close()
+#         conn.close()
 
-        if not users:
-            bot.send_message(user_id, "📊 В базе пока нет пользователей.")
-            return
+#         if not users:
+#             bot.send_message(user_id, "📊 В базе пока нет пользователей.")
+#             return
 
-        messages = []
-        stats_message = "📊 <b>Статистика пользователей:</b>\n\n"
-        count = 1
+#         messages = []
+#         stats_message = "📊 <b>Статистика пользователей:</b>\n\n"
+#         count = 1
 
-        for user in users:
-            user_id_db, username, first_name, created_at = user
-            username_text = f"@{username}" if username else "—"
-            user_info = (
-                f"👤 <b>{count}. {first_name}</b> ({username_text}) — "
-                f"{created_at.strftime('%Y-%m-%d')}\n"
-            )
+#         for user in users:
+#             user_id_db, username, first_name, created_at = user
+#             username_text = f"@{username}" if username else "—"
+#             user_info = (
+#                 f"👤 <b>{count}. {first_name}</b> ({username_text}) — "
+#                 f"{created_at.strftime('%Y-%m-%d')}\n"
+#             )
 
-            # Если сообщение превышает 4000 символов, создаем новое
-            if len(stats_message) + len(user_info) > 4000:
-                messages.append(stats_message)
-                stats_message = ""
+#             # Если сообщение превышает 4000 символов, создаем новое
+#             if len(stats_message) + len(user_info) > 4000:
+#                 messages.append(stats_message)
+#                 stats_message = ""
 
-            stats_message += user_info
-            count += 1
+#             stats_message += user_info
+#             count += 1
 
-        messages.append(stats_message)  # Добавляем последний блок данных
+#         messages.append(stats_message)  # Добавляем последний блок данных
 
-        # Отправляем статистику в несколько сообщений
-        for msg in messages:
-            bot.send_message(user_id, msg, parse_mode="HTML")
+#         # Отправляем статистику в несколько сообщений
+#         for msg in messages:
+#             bot.send_message(user_id, msg, parse_mode="HTML")
 
-    except Exception as e:
-        bot.send_message(user_id, "❌ Ошибка при получении статистики.")
-        print(f"Ошибка статистики: {e}")
+#     except Exception as e:
+#         bot.send_message(user_id, "❌ Ошибка при получении статистики.")
+#         print(f"Ошибка статистики: {e}")
 
 
 def is_subscribed(user_id):
@@ -243,37 +240,37 @@ def process_broadcast(message):
     send_broadcast(text)
 
 
-def send_broadcast(text):
-    """Функция отправки рассылки всем пользователям из базы"""
-    try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode="require")
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT user_id, username FROM users WHERE username IS NOT NULL AND phone_number IS NOT NULL"
-        )
-        users = cursor.fetchall()
+# def send_broadcast(text):
+#     """Функция отправки рассылки всем пользователям из базы"""
+#     try:
+#         conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+#         cursor = conn.cursor()
+#         cursor.execute(
+#             "SELECT user_id, username FROM users WHERE username IS NOT NULL AND phone_number IS NOT NULL"
+#         )
+#         users = cursor.fetchall()
 
-        count = 0  # Счётчик успешных сообщений
+#         count = 0  # Счётчик успешных сообщений
 
-        for user in users:
-            user_id, username = user
-            personalized_text = f"{username}, на связи GetAuto!\n\n{text}"
-            try:
-                bot.send_message(user_id, personalized_text, parse_mode="HTML")
-                count += 1
-                time.sleep(0.5)  # Задержка, чтобы не блокировали
-            except Exception as e:
-                print(f"Ошибка отправки пользователю {user_id}: {e}")
+#         for user in users:
+#             user_id, username = user
+#             personalized_text = f"{username}, на связи GetAuto!\n\n{text}"
+#             try:
+#                 bot.send_message(user_id, personalized_text, parse_mode="HTML")
+#                 count += 1
+#                 time.sleep(0.5)  # Задержка, чтобы не блокировали
+#             except Exception as e:
+#                 print(f"Ошибка отправки пользователю {user_id}: {e}")
 
-        bot.send_message(
-            message.chat.id, f"✅ Рассылка завершена! Отправлено {count} сообщений."
-        )
-    except Exception as e:
-        bot.send_message(message.chat.id, "❌ Ошибка при отправке рассылки.")
-        print(f"Ошибка рассылки: {e}")
-    finally:
-        cursor.close()
-        conn.close()
+#         bot.send_message(
+#             message.chat.id, f"✅ Рассылка завершена! Отправлено {count} сообщений."
+#         )
+#     except Exception as e:
+#         bot.send_message(message.chat.id, "❌ Ошибка при отправке рассылки.")
+#         print(f"Ошибка рассылки: {e}")
+#     finally:
+#         cursor.close()
+#         conn.close()
 
 
 # Функция для установки команд меню
@@ -281,7 +278,7 @@ def set_bot_commands():
     commands = [
         types.BotCommand("start", "Запустить бота"),
         types.BotCommand("cbr", "Курсы валют"),
-        types.BotCommand("stats", "Статистика"),
+        # types.BotCommand("stats", "Статистика"),
     ]
     bot.set_my_commands(commands)
 
@@ -406,7 +403,7 @@ def send_welcome(message):
     # Если подписан — продолжаем работу
     welcome_message = (
         f"Здравствуйте, {first_name}!\n\n"
-        "Я бот компании GetAuto. Я помогу вам расчитать стоимость понравившегося вам автомобиля из Южной Кореи до Владивостока.\n\n"
+        "Я бот компании Сток Авто. Я помогу вам расчитать стоимость понравившегося вам автомобиля из Южной Кореи до Владивостока.\n\n"
         "Выберите действие из меню ниже."
     )
     bot.send_message(user_id, welcome_message, reply_markup=main_menu())
@@ -1116,8 +1113,8 @@ def handle_message(message):
 
     elif user_message == "Мы в соц. сетях":
         channel_link = "https://t.me/Getauto_kor"
-        instagram_link = "https://www.instagram.com/getauto_korea"
-        youtube_link = "https://youtube.com/@getauto_korea"
+        instagram_link = "https://www.instagram.com/petrov_avto_krd/"
+        youtube_link = "https://www.youtube.com/@%D0%9F%D0%B5%D1%82%D1%80%D0%BE%D0%B2%D0%A1%D1%82%D0%BE%D0%BA%D0%90%D0%B2%D1%82%D0%BE"
         dzen_link = "https://dzen.ru/getauto_ru"
         vk_link = "https://vk.com/getauto_korea"
 
@@ -1441,7 +1438,6 @@ def calculate_manual_cost(user_id):
         f"Стоимость автомобиля в Корее: ₩{format_number(price_krw)}\n"
         f"Объём двигателя: {engine_volume_formatted}\n\n"
         f"Примерная стоимость автомобиля под ключ до Владивостока:\n"
-        # f"<b>${format_number(total_cost_usd)}</b> | "
         f"<b>₩{format_number(total_cost_krw)}</b> | "
         f"<b>{format_number(total_cost)} ₽</b>\n\n"
         "Если данное авто попадает под санкции, пожалуйста уточните возможность отправки в вашу страну у менеджера @GetAuto_manager_bot\n\n"
