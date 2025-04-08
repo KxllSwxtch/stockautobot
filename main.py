@@ -1133,9 +1133,9 @@ def handle_message(message):
         instagram_link = "https://www.instagram.com/petrov_avto_krd/"
         youtube_link = "https://www.youtube.com/@%D0%9F%D0%B5%D1%82%D1%80%D0%BE%D0%B2%D0%A1%D1%82%D0%BE%D0%BA%D0%90%D0%B2%D1%82%D0%BE"
         # dzen_link = "https://dzen.ru/getauto_ru"
-        # vk_link = "https://vk.com/getauto_korea"
+        vk_link = "https://vk.com/stok_avto_krd"
 
-        message_text = f"Наш Телеграм Канал: \n{channel_link}\n\nНаш Инстаграм: \n{instagram_link}\n\nНаш YouTube Канал: \n{youtube_link}\n\n"
+        message_text = f"Наш Телеграм Канал: \n{channel_link}\n\nНаш Инстаграм: \n{instagram_link}\n\nНаш YouTube Канал: \n{youtube_link}\n\nСтраница в VK: \n{vk_link}\n\n"
 
         bot.send_message(message.chat.id, message_text)
 
