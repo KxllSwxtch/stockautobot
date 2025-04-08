@@ -1107,9 +1107,9 @@ def handle_message(message):
             "Вы можете связаться с менеджером по ссылке: @Petrov1982_777",
         )
     elif user_message == "Написать в WhatsApp":
-        whatsapp_link = "https://wa.me/821030485191"  # Владимир Кан
+        whatsapp_link = "https://wa.me/79284082555"
 
-        message_text = f"{whatsapp_link} - Владимир (Корея)"
+        message_text = f"{whatsapp_link} - Евгений"
 
         bot.send_message(
             message.chat.id,
