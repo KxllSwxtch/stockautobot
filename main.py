@@ -10,6 +10,7 @@ import datetime
 import logging
 import urllib.parse
 import random
+import json
 
 from io import BytesIO
 from telebot import types
@@ -81,43 +82,293 @@ rub_to_krw_rate = None
 
 vehicle_id = None
 vehicle_no = None
+user_bitrix_data = {}
 
 # Настройка базы данных
 import psycopg2
 from psycopg2 import sql
 from telebot import types
 
-# Подключение к базе данных
-# DATABASE_URL = os.getenv("DATABASE_URL")
-# conn = psycopg2.connect(DATABASE_URL, sslmode="require")
-# cursor = conn.cursor()
-# print("✅ Успешное подключение к БД")
+
+########################################################
+# Битрикс24
+########################################################
+def bitrix_request(method, data):
+    """
+    Функция для отправки запросов к API Bitrix24
+
+    Args:
+        method (str): Метод API Bitrix24 (например, 'crm.contact.add')
+        data (dict): Данные для отправки в формате словаря
+
+    Returns:
+        dict: Ответ от API Bitrix24 в формате JSON
+    """
+    try:
+        url = (
+            "https://stokavto.bitrix24.ru/rest/841/lvcrw7wq897ljfgx/" + method + ".json"
+        )
+
+        # Логирование отправляемого запроса
+        print(f"Отправка запроса к Bitrix24: {method}")
+        print(f"URL: {url}")
+        print(f"Данные: {data}")
+
+        # Отправка POST-запроса
+        response = requests.post(url, json=data)
+
+        # Проверка статус-кода ответа
+        response.raise_for_status()
+
+        # Преобразование ответа в JSON
+        result = response.json()
+
+        # Логирование полученного ответа
+        logging.info(f"Получен ответ от Bitrix24: {method}")
+        logging.debug(f"Ответ: {result}")
+
+        return result
+
+    except requests.exceptions.RequestException as e:
+        # Обработка ошибок HTTP-запросов
+        logging.error(f"Ошибка HTTP при обращении к Bitrix24 ({method}): {e}")
+        return {"result": None, "error": f"HTTP Error: {str(e)}"}
+
+    except json.JSONDecodeError as e:
+        # Обработка ошибок парсинга JSON
+        logging.error(f"Ошибка парсинга JSON от Bitrix24 ({method}): {e}")
+        return {"result": None, "error": f"JSON Error: {str(e)}"}
+
+    except Exception as e:
+        # Общая обработка остальных ошибок
+        logging.error(f"Непредвиденная ошибка при обращении к Bitrix24 ({method}): {e}")
+        return {"result": None, "error": f"Unknown Error: {str(e)}"}
 
 
-# def save_user_to_db(user_id, username, first_name, phone_number):
-#     """Сохраняет пользователя в базу данных."""
-#     if username is None or phone_number is None:
-#         return  # Пропускаем пользователей с скрытыми данными
+# Функции для интеграции с Bitrix24
+def create_bitrix_contact(name, phone, username=None, telegram_id=None):
+    """
+    Создает контакт в Bitrix24
 
-#     try:
-#         conn = psycopg2.connect(DATABASE_URL, sslmode="require")
-#         cursor = conn.cursor()
+    Args:
+        name (str): Имя контакта
+        phone (str): Номер телефона
+        username (str, optional): Имя пользователя в Telegram
+        telegram_id (int, optional): ID пользователя в Telegram
 
-#         # SQL-запрос для вставки данных
-#         query = sql.SQL(
-#             """
-#             INSERT INTO users (user_id, username, first_name, phone_number)
-#             VALUES (%s, %s, %s, %s)
-#             ON CONFLICT (user_id) DO NOTHING;
-#         """
-#         )
+    Returns:
+        int: ID созданного контакта или None в случае ошибки
+    """
+    fields = {"NAME": name, "PHONE": [{"VALUE_TYPE": "WORK", "VALUE": phone}]}
 
-#         cursor.execute(query, (user_id, username, first_name, phone_number))
-#         conn.commit()
-#         cursor.close()
-#         conn.close()
-#     except Exception as e:
-#         print(f"Ошибка при сохранении пользователя: {e}")
+    # Добавляем информацию о Telegram, если доступна
+    comment = ""
+    if username:
+        comment += f"Telegram: @{username}\n"
+    if telegram_id:
+        comment += f"Telegram ID: {telegram_id}\n"
+
+    if comment:
+        fields["COMMENTS"] = comment
+
+    data = {"fields": fields}
+    result = bitrix_request("crm.contact.add", data)
+
+    if "result" in result:
+        logging.info(f"Создан контакт в Bitrix24: {name}, ID: {result['result']}")
+        return result["result"]
+    else:
+        logging.error(
+            f"Ошибка создания контакта в Bitrix24: {result.get('error', 'Неизвестная ошибка')}"
+        )
+        return None
+
+
+def create_bitrix_deal(
+    contact_id,
+    title="Заявка от бота",
+    amount=0,
+    description=None,
+    car_make=None,
+    car_model=None,
+    car_date=None,
+    korea_expenses=0,
+):
+    """
+    Создает сделку в Bitrix24, привязанную к контакту
+
+    Args:
+        contact_id (int): ID контакта в Bitrix24
+        title (str): Название сделки
+        amount (int/float): Сумма сделки
+        description (str, optional): Описание сделки
+        car_make (str, optional): Марка автомобиля
+        car_model (str, optional): Модель автомобиля
+        car_date (str, optional): Дата выпуска/регистрации
+        korea_expenses (int/float, optional): Расходы в Корее
+
+    Returns:
+        int: ID созданной сделки или None в случае ошибки
+    """
+    fields = {
+        "TITLE": title,
+        "NAME": contact_name,  # Добавить параметр contact_name в функцию
+        "OPPORTUNITY": amount,
+        "CONTACT_ID": contact_id,
+        "OPENED": "Y",
+        "ASSIGNED_BY_ID": 1,
+        "SOURCE_ID": "ADVERTISING",  # Изменить на TELEGRAM
+        "UTM_SOURCE": "telegram_bot",  # Добавить UTM_SOURCE
+        "UF_CRM_1724051508854": 0,
+    }
+
+    if description:
+        fields["COMMENTS"] = description
+
+    # Добавляем пользовательские поля, если они предоставлены
+    if car_make:
+        fields["UF_CRM_1724051289302"] = car_make
+
+    if car_model:
+        fields["UF_CRM_1724054557008"] = car_model
+
+    if car_date:
+        fields["UF_CRM_1724055123642"] = car_date
+
+    # Поле по умолчанию равно 0
+    fields["UF_CRM_1724051508854"] = 0
+
+    # Расходы в Корее
+    if korea_expenses > 0:
+        fields["UF_CRM_1724050222598"] = korea_expenses
+
+    data = {"fields": fields}
+    result = bitrix_request(
+        "crm.lead.add", data
+    )  # Изменено с "crm.deal.add" на "crm.lead.add"
+
+    if "result" in result:
+        logging.info(f"Создана сделка в Bitrix24: {title}, ID: {result['result']}")
+        return result["result"]
+    else:
+        logging.error(
+            f"Ошибка создания сделки в Bitrix24: {result.get('error', 'Неизвестная ошибка')}"
+        )
+        return None
+
+
+def handle_car_calculation_bitrix(message, car_title, car_price, car_features):
+    """
+    Обработчик для сбора данных пользователя после расчета автомобиля
+    и отправки их в Bitrix24
+    """
+    user_id = message.chat.id
+
+    # Сохраняем данные об автомобиле во временное хранилище
+    user_data = {
+        "car_title": car_title,
+        "car_price": car_price,
+        "car_features": car_features,
+    }
+
+    # Используем глобальный словарь или Redis для хранения временных данных
+    user_bitrix_data[user_id] = user_data
+
+    # Запрашиваем имя пользователя
+    bot.send_message(
+        user_id, "Для получения подробной консультации, пожалуйста, введите ваше имя:"
+    )
+    bot.register_next_step_handler(message, process_bitrix_name)
+
+
+def process_bitrix_name(message):
+    """Обработчик ввода имени для Bitrix24"""
+    user_id = message.chat.id
+    name = message.text.strip()
+
+    # Проверка корректности имени
+    if len(name) < 2:
+        bot.send_message(user_id, "Пожалуйста, введите корректное имя:")
+        bot.register_next_step_handler(message, process_bitrix_name)
+        return
+
+    # Сохраняем имя
+    user_bitrix_data[user_id]["name"] = name
+
+    # Запрашиваем телефон
+    bot.send_message(user_id, "Введите ваш номер телефона для связи:")
+    bot.register_next_step_handler(message, process_bitrix_phone)
+
+
+def process_bitrix_phone(message):
+    """Обработчик ввода телефона для Bitrix24"""
+    user_id = message.chat.id
+    phone_number = message.text.strip()
+
+    # Проверка корректности телефона
+    if not re.match(r"^\+?\d{10,15}$", phone_number):
+        bot.send_message(user_id, "Пожалуйста, введите корректный номер телефона:")
+        bot.register_next_step_handler(message, process_bitrix_phone)
+        return
+
+    # Сохраняем телефон
+    user_bitrix_data[user_id]["phone"] = phone_number
+
+    # Получаем сохраненные данные
+    user_data = user_bitrix_data[user_id]
+
+    # Информация о пользователе из Telegram
+    user_info = message.from_user
+    username = user_info.username
+    telegram_id = user_info.id
+
+    # Создаем контакт в Bitrix24
+    contact_id = create_bitrix_contact(
+        user_data["name"], phone_number, username, telegram_id
+    )
+
+    if contact_id:
+        # Формируем описание сделки
+        description = f"Автомобиль: {user_data['car_title']}\n"
+        description += f"Характеристики: {user_data['car_features']}\n"
+        description += f"Расчетная стоимость: {user_data['car_price']} ₽\n"
+        description += f"Запрос через Telegram бота"
+
+        # Создаем сделку
+        deal_id = create_bitrix_deal(
+            contact_id,
+            f"Расчет авто: {user_data['car_title']}",
+            user_data["car_price"],
+            description,
+            user_data["car_make"],
+            user_data["car_model"],
+            f"{user_data['car_year']}/{user_data['car_month']}",
+            user_data["korea_expenses"],
+        )
+
+        if deal_id:
+            bot.send_message(
+                user_id,
+                "✅ Спасибо! Ваша заявка отправлена. Наш менеджер свяжется с вами в ближайшее время.",
+            )
+        else:
+            bot.send_message(
+                user_id,
+                "⚠️ Произошла ошибка при создании заявки. Пожалуйста, свяжитесь с менеджером напрямую.",
+            )
+    else:
+        bot.send_message(
+            user_id,
+            "⚠️ Не удалось отправить данные. Пожалуйста, свяжитесь с менеджером напрямую.",
+        )
+
+    # Очищаем временные данные
+    del user_bitrix_data[user_id]
+
+
+########################################################
+# Битрикс24 КОНЕЦ
+########################################################
 
 
 @bot.message_handler(commands=["start"])
@@ -140,58 +391,45 @@ def send_welcome(message):
     )
 
 
-# @bot.message_handler(commands=["stats"])
-# def show_statistics(message):
-#     """Команда /stats доступна только администраторам"""
-#     user_id = message.chat.id  # Получаем user_id того, кто запустил команду
+def process_credit_phone(message, full_name):
+    user_id = message.chat.id
+    phone_number = message.text.strip()
 
-#     if user_id not in admins:
-#         bot.send_message(user_id, "❌ У вас нет доступа к этой команде.")
-#         return
+    # Проверка номера телефона
+    if not re.match(r"^\+?\d{10,15}$", phone_number):
+        bot.send_message(user_id, "❌ Введите корректный номер телефона:")
+        bot.register_next_step_handler(message, process_credit_phone, full_name)
+        return
 
-#     try:
-#         conn = psycopg2.connect(DATABASE_URL, sslmode="require")
-#         cursor = conn.cursor()
+    # Информация о пользователе из Telegram
+    user_info = message.from_user
+    username = user_info.username
+    telegram_id = user_info.id
 
-#         cursor.execute("SELECT user_id, username, first_name, created_at FROM users;")
-#         users = cursor.fetchall()
+    # Создание контакта и сделки в Bitrix24
+    contact_id = create_bitrix_contact(full_name, phone_number, username, telegram_id)
 
-#         cursor.close()
-#         conn.close()
+    if contact_id:
+        description = "Заявка на оформление кредита через Telegram бота"
+        deal_id = create_bitrix_deal(
+            contact_id, "Заявка на кредит", 0, description  # Сумма пока неизвестна
+        )
 
-#         if not users:
-#             bot.send_message(user_id, "📊 В базе пока нет пользователей.")
-#             return
-
-#         messages = []
-#         stats_message = "📊 <b>Статистика пользователей:</b>\n\n"
-#         count = 1
-
-#         for user in users:
-#             user_id_db, username, first_name, created_at = user
-#             username_text = f"@{username}" if username else "—"
-#             user_info = (
-#                 f"👤 <b>{count}. {first_name}</b> ({username_text}) — "
-#                 f"{created_at.strftime('%Y-%m-%d')}\n"
-#             )
-
-#             # Если сообщение превышает 4000 символов, создаем новое
-#             if len(stats_message) + len(user_info) > 4000:
-#                 messages.append(stats_message)
-#                 stats_message = ""
-
-#             stats_message += user_info
-#             count += 1
-
-#         messages.append(stats_message)  # Добавляем последний блок данных
-
-#         # Отправляем статистику в несколько сообщений
-#         for msg in messages:
-#             bot.send_message(user_id, msg, parse_mode="HTML")
-
-#     except Exception as e:
-#         bot.send_message(user_id, "❌ Ошибка при получении статистики.")
-#         print(f"Ошибка статистики: {e}")
+        if deal_id:
+            bot.send_message(
+                user_id,
+                "✅ Ваша заявка на кредит успешно отправлена! Мы с вами свяжемся в ближайшее время.",
+            )
+        else:
+            bot.send_message(
+                user_id,
+                "⚠️ Произошла ошибка при создании заявки. Пожалуйста, свяжитесь с менеджером напрямую.",
+            )
+    else:
+        bot.send_message(
+            user_id,
+            "⚠️ Не удалось отправить данные. Пожалуйста, свяжитесь с менеджером напрямую.",
+        )
 
 
 def is_subscribed(user_id):
@@ -224,24 +462,24 @@ def print_message(message):
     return None
 
 
-@bot.message_handler(commands=["setbroadcast"])
-def set_broadcast(message):
-    """Команда для запуска рассылки вручную"""
-    if message.chat.id not in admins:
-        bot.send_message(message.chat.id, "🚫 У вас нет прав для запуска рассылки.")
-        return
+# @bot.message_handler(commands=["setbroadcast"])
+# def set_broadcast(message):
+#     """Команда для запуска рассылки вручную"""
+#     if message.chat.id not in admins:
+#         bot.send_message(message.chat.id, "🚫 У вас нет прав для запуска рассылки.")
+#         return
 
-    bot.send_message(message.chat.id, "✍️ Введите текст рассылки:")
-    bot.register_next_step_handler(message, process_broadcast)
+#     bot.send_message(message.chat.id, "✍️ Введите текст рассылки:")
+#     bot.register_next_step_handler(message, process_broadcast)
 
 
-def process_broadcast(message):
-    """Обрабатывает введённый текст и запускает рассылку"""
-    text = message.text
-    bot.send_message(message.chat.id, f"📢 Начинаю рассылку...\n\n{text}")
+# def process_broadcast(message):
+#     """Обрабатывает введённый текст и запускает рассылку"""
+#     text = message.text
+#     bot.send_message(message.chat.id, f"📢 Начинаю рассылку...\n\n{text}")
 
-    # Запускаем рассылку
-    send_broadcast(text)
+#     # Запускаем рассылку
+#     send_broadcast(text)
 
 
 # def send_broadcast(text):
@@ -506,6 +744,8 @@ def get_car_info(url):
     )
 
     return [
+        car_make,
+        car_model,
         car_price,
         car_engine_displacement,
         formatted_car_date,
@@ -552,6 +792,8 @@ def calculate_cost(link, message):
 
     result = get_car_info(link)
     (
+        car_make,
+        car_model,
         car_price,
         car_engine_displacement,
         formatted_car_date,
@@ -757,6 +999,70 @@ def calculate_cost(link, message):
             f"🔗 <a href='{preview_link}'>Ссылка на автомобиль</a>\n\n"
             "🔗 <a href='https://t.me/stok_auto_krd'>Официальный телеграм канал</a>\n"
         )
+
+        # Отправка данных в Bitrix24
+        try:
+            # Данные о пользователе
+            user_id = message.from_user.id
+            first_name = (
+                message.from_user.first_name if message.from_user.first_name else ""
+            )
+            last_name = (
+                message.from_user.last_name if message.from_user.last_name else ""
+            )
+            username = message.from_user.username if message.from_user.username else ""
+
+            # Данные об автомобиле и создаем контакт
+            contact_data = {
+                "fields": {
+                    "NAME": f"{first_name} {last_name}",
+                    "PHONE": [
+                        {"VALUE_TYPE": "WORK", "VALUE": ""}
+                    ],  # Если есть номер телефона
+                }
+            }
+            contact_result = bitrix_request("crm.contact.add", contact_data)
+            contact_id = contact_result.get("result")
+
+            bitrix_data = {
+                "fields": {
+                    "TITLE": f"Расчет авто: {car_title}",
+                    "CONTACT_ID": contact_id,
+                    "SOURCE_ID": "ADVERTISING",  # Изменить значение на ADVERTISING
+                    "COMMENTS": f"Telegram ID: {user_id}\nUsername: @{username}\nАвтомобиль: {car_title}\nСтоимость: ₩{format_number(total_cost_krw)} | {format_number(total_cost)} ₽\nСсылка: {preview_link}",
+                    "OPENED": "Y",
+                    "ASSIGNED_BY_ID": 1,
+                    "UTM_SOURCE": "telegram_bot",
+                    # "UF_CRM_1724051289302": str(),  # МАРКА
+                    "UF_CRM_1724051120429": [car_title],  # МОДЕЛЬ АВТОМОБИЛЯ
+                    "UF_CRM_1724055123642": f"{month}/{year}",  # ДАТА ВЫПУСКА / ДАТА РЕГИСТРАЦИИ
+                    "UF_CRM_1724051508854": 0,  # По умолчанию 0
+                    "OPPORTUNITY": total_cost,  # СТОИМОСТЬ ПОД КЛЮЧ В РУБЛЯХ
+                    "UF_CRM_1724050222598": car_data[
+                        "korea_total_rub"
+                    ],  # РАСХОДЫ В КОРЕЕ
+                }
+            }
+
+            try:
+                print_message(f"Отправка данных в Bitrix24...")
+                result = bitrix_request("crm.deal.add", bitrix_data)
+
+                if "result" in result and result["result"]:
+                    print_message(
+                        f"Данные успешно отправлены в Bitrix24. ID сделки: {result['result']}"
+                    )
+                    print_message(f"Результат отправки в Bitrix: {result}")
+                else:
+                    error_msg = result.get(
+                        "error_description", result.get("error", "Неизвестная ошибка")
+                    )
+                    print_message(f"Ошибка при отправке данных в Bitrix24: {error_msg}")
+            except Exception as e:
+                print_message(f"Исключение при отправке данных в Bitrix24: {str(e)}")
+
+        except Exception as e:
+            print_message(f"Ошибка при подготовке данных для Bitrix24: {e}")
 
         # Клавиатура с дальнейшими действиями
         keyboard = types.InlineKeyboardMarkup()
