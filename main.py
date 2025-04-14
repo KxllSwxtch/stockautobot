@@ -809,7 +809,7 @@ def calculate_cost(link, message):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(
             types.InlineKeyboardButton(
-                "Написать менеджеру", url="https://t.me/Petrov1982_777"
+                "Написать менеджеру", url="https://t.me/stokauto_manager_bot"
             )
         )
         keyboard.add(
@@ -994,7 +994,7 @@ def calculate_cost(link, message):
             f"▪️ СВХ-Владивосток:\n<b>₩{format_number(car_data['svh_russia_krw'])}</b> | <b>{format_number(car_data['svh_russia_rub'])} ₽</b>\n\n"
             f"▪️ Лаборатория, СБКТС, ЭПТС:\n<b>₩{format_number(car_data['lab_russia_krw'])}</b> | <b>{format_number(car_data['lab_russia_rub'])} ₽</b>\n\n"
             f"▪️ Временная регистрация-Владивосток:\n<b>₩{format_number(car_data['perm_registration_russia_krw'])}</b> | <b>{format_number(car_data['perm_registration_russia_rub'])} ₽</b>\n\n"
-            f"‼️ <b>Доставку до вашего города уточняйте у менеджера @Petrov1982_777</b>\n\n"
+            f"‼️ <b>Доставку до вашего города уточняйте у менеджера @stokauto_manager_bot</b>\n\n"
             "Стоимость под ключ актуальна на сегодняшний день, возможны колебания курса на 3-5% от стоимости авто, на момент покупки автомобиля\n\n"
             f"🔗 <a href='{preview_link}'>Ссылка на автомобиль</a>\n\n"
             "🔗 <a href='https://t.me/stok_auto_krd'>Официальный телеграм канал</a>\n"
@@ -1077,7 +1077,7 @@ def calculate_cost(link, message):
         )
         keyboard.add(
             types.InlineKeyboardButton(
-                "Написать менеджеру", url="https://t.me/Petrov1982_777"
+                "Написать менеджеру", url="https://t.me/stokauto_manager_bot"
             )
         )
         keyboard.add(
@@ -1193,7 +1193,7 @@ def handle_callback_query(call):
             f"СВХ-Владивосток:\n<b>₩{format_number(car_data['svh_russia_krw'])}</b> | <b>{format_number(car_data['svh_russia_rub'])} ₽</b>\n\n"
             f"Лаборатория, СБКТС, ЭПТС:\n<b>₩{format_number(car_data['lab_russia_krw'])}</b> | <b>{format_number(car_data['lab_russia_rub'])} ₽</b>\n\n"
             f"Временная регистрация-Владивосток:\n<b>₩{format_number(car_data['perm_registration_russia_krw'])}</b> | <b>{format_number(car_data['perm_registration_russia_rub'])} ₽</b>\n\n"
-            f"<b>Доставку до вашего города уточняйте у менеджера @Petrov1982_777</b>\n"
+            f"<b>Доставку до вашего города уточняйте у менеджера @stokauto_manager_bot</b>\n"
             "Стоимость под ключ актуальна на сегодняшний день, возможны колебания курса на 3-5% от стоимости авто, на момент покупки автомобиля\n\n"
         )
 
@@ -1217,7 +1217,7 @@ def handle_callback_query(call):
 
         keyboard.add(
             types.InlineKeyboardButton(
-                "Связаться с менеджером", url="https://t.me/Petrov1982_777"
+                "Связаться с менеджером", url="https://t.me/stokauto_manager_bot"
             )
         )
 
@@ -1261,7 +1261,7 @@ def handle_callback_query(call):
             )
             keyboard.add(
                 types.InlineKeyboardButton(
-                    "Связаться с менеджером", url="https://t.me/Petrov1982_777"
+                    "Связаться с менеджером", url="https://t.me/stokauto_manager_bot"
                 )
             )
 
@@ -1297,7 +1297,7 @@ def handle_callback_query(call):
             )
             keyboard.add(
                 types.InlineKeyboardButton(
-                    "Связаться с менеджером", url="https://t.me/Petrov1982_777"
+                    "Связаться с менеджером", url="https://t.me/stokauto_manager_bot"
                 )
             )
 
@@ -1410,7 +1410,7 @@ def handle_message(message):
     elif user_message == "Написать менеджеру":
         bot.send_message(
             message.chat.id,
-            "Вы можете связаться с менеджером по ссылке: @Petrov1982_777",
+            "Вы можете связаться с менеджером по ссылке: @stokauto_manager_bot",
         )
     elif user_message == "Написать в WhatsApp":
         whatsapp_link = "https://wa.me/79284082555"
@@ -1430,7 +1430,7 @@ def handle_message(message):
             "✅ <b>Гарантированное качество</b> — Проверенные авто, прозрачная история и состояние.\n\n"
             "💰 <b>Прозрачность ценообразования</b> — Честные цены, без скрытых платежей и комиссий.\n\n"
             "🚛 <b>Надежная логистика</b> — Организуем доставку авто в любую точку СНГ.\n\n"
-            f"📲 Свяжитесь с нами и получите расчёт прямо сейчас! @Petrov1982_777"
+            f"📲 Свяжитесь с нами и получите расчёт прямо сейчас! @stokauto_manager_bot"
         )
         bot.send_message(message.chat.id, about_message, parse_mode="HTML")
 
@@ -1763,7 +1763,7 @@ def calculate_manual_cost(user_id):
         f"Примерная стоимость автомобиля под ключ до Владивостока:\n"
         f"<b>₩{format_number(total_cost_krw)}</b> | "
         f"<b>{format_number(total_cost)} ₽</b>\n\n"
-        "Если данное авто попадает под санкции, пожалуйста уточните возможность отправки в вашу страну у менеджера @Petrov1982_777\n\n"
+        "Если данное авто попадает под санкции, пожалуйста уточните возможность отправки в вашу страну у менеджера @stokauto_manager_bot\n\n"
         "🔗 <a href='https://t.me/stok_auto_krd'>Официальный телеграм канал</a>\n"
     )
 
@@ -1779,7 +1779,7 @@ def calculate_manual_cost(user_id):
     )
     keyboard.add(
         types.InlineKeyboardButton(
-            "Написать менеджеру", url="https://t.me/Petrov1982_777"
+            "Написать менеджеру", url="https://t.me/stokauto_manager_bot"
         )
     )
 
